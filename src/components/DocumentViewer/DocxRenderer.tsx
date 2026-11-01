@@ -5,6 +5,7 @@ import { applySearchHighlights, collectMatchElements, scrollElementIntoView } fr
 import { useActivePage } from '../../hooks/useActivePage';
 import { ViewerRenderProps } from './types';
 import { PRINT_PAGE_CSS } from '../../lib/printSupport';
+import { applyTextboxSpecs, placeTextboxes, preprocessDocx } from '../../lib/docxTextboxes';
 
 export const DocxRenderer: React.FC<ViewerRenderProps> = (props) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -61,8 +62,8 @@ export const DocxRenderer: React.FC<ViewerRenderProps> = (props) => {
         styleHost.id = 'qso-docx-styles';
         document.body.appendChild(styleHost);
 
-        const { renderAsync } = await import('docx-preview');
-        await renderAsync(blob, container, styleHost, {
+        const { renderAsync, parseAsync, renderDocument } = await import('docx-preview');
+        const options = {
           className: 'docx',
           inWrapper: true,
           breakPages: true,
@@ -73,7 +74,28 @@ export const DocxRenderer: React.FC<ViewerRenderProps> = (props) => {
           renderEndnotes: true,
           renderComments: true,
           renderChanges: false,
-        });
+        };
+
+        // Text boxes/shapes get Word-like rendering; any failure falls back to
+        // plain docx-preview so the document still displays.
+        let rendered = false;
+        try {
+          const prepared = await preprocessDocx(blob);
+          if (prepared) {
+            const doc = await parseAsync(prepared.blob, options);
+            applyTextboxSpecs(doc, prepared.specs);
+            const nodes = await renderDocument(doc, options);
+            if (cancelled) return;
+            styleHost.innerHTML = '';
+            container.innerHTML = '';
+            for (const n of nodes) (n.nodeName === 'STYLE' ? styleHost : container).appendChild(n);
+            placeTextboxes(container, prepared.specs);
+            rendered = true;
+          }
+        } catch (textboxErr) {
+          console.warn('[docx] text box rendering failed; using default renderer', textboxErr);
+        }
+        if (!rendered) await renderAsync(blob, container, styleHost, options);
 
         if (cancelled) return;
 
