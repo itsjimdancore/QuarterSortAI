@@ -162,6 +162,12 @@ async function startServer() {
   const app = express();
   const PORT = 5454;
 
+  // Dev only: forward /api/ocr* to the local Python OCR fallback
+  // (uvicorn api.ocr:app --port 8000). On Vercel, api/ocr.py serves it directly.
+  if (process.env.NODE_ENV !== 'production') {
+    app.use('/api/ocr', createOcrDevProxy(process.env.OCR_DEV_TARGET || 'http://localhost:8000'));
+  }
+
   app.use(express.json({ limit: '10mb' }));
 
   // Initialize Groq AI client config server-side (real calls gated on GROQ_API_KEY)
@@ -452,6 +458,33 @@ ${(text || '').slice(0, 6000)}`;
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`QuarterSort AI server listening on http://0.0.0.0:${PORT}`);
   });
+}
+
+// Tiny fetch-based proxy used only in development. Buffers the request body
+// (uploads are capped at ~4 MB) and relays status, content-type and body.
+function createOcrDevProxy(target: string): express.RequestHandler {
+  return async (req, res) => {
+    try {
+      const chunks: Buffer[] = [];
+      for await (const chunk of req) chunks.push(chunk as Buffer);
+      const body = chunks.length ? Buffer.concat(chunks) : undefined;
+      const headers: Record<string, string> = {};
+      if (req.headers['content-type']) headers['content-type'] = req.headers['content-type'];
+      const upstream = await fetch(`${target}${req.originalUrl}`, {
+        method: req.method,
+        headers,
+        body: req.method === 'GET' || req.method === 'HEAD' ? undefined : body,
+        signal: AbortSignal.timeout(30_000),
+      });
+      res.status(upstream.status);
+      const contentType = upstream.headers.get('content-type');
+      if (contentType) res.setHeader('content-type', contentType);
+      res.send(Buffer.from(await upstream.arrayBuffer()));
+    } catch {
+      console.warn(`[ocr-proxy] OCR backend unreachable at ${target}; browser OCR results will be kept`);
+      res.status(502).json({ error: 'OCR fallback backend is not running' });
+    }
+  };
 }
 
 interface PhysicalDiskShape {

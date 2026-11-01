@@ -37,7 +37,17 @@ export const InsightsPanel: React.FC<InsightsPanelProps> = ({ file, insights, in
           <Field label="Modified" value={formatDate(file.modifiedDate)} />
           <Field label="Type" value={`.${file.extension.toUpperCase()}`} />
           <Field label="Category" value={file.category} />
-          <Field label="OCR Status" value={insights?.ocrStatus || (file.textContent ? 'Text available' : 'Not run')} />
+          <Field
+            label="OCR Status"
+            value={
+              <>
+                {insights?.ocrStatus || (file.textContent ? 'Text available' : 'Not run')}
+                {file.ocrEngine && (
+                  <span className="ml-1 font-mono text-[0.5625rem] font-normal text-slate-400">· {file.ocrEngine}</span>
+                )}
+              </>
+            }
+          />
           <div className="col-span-2">
             <span className="text-[0.5625rem] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">Classification Confidence</span>
             <div className="flex items-center gap-2">

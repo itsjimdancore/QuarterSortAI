@@ -1,0 +1,12 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "api/ocr.py": {
+      "maxDuration": 60,
+      "excludeFiles": "{node_modules/**,src/**,dist/**,assets/**,tests/**,**/test_*.py,.venv/**,**/__pycache__/**,*.md,docs/**,**/*.png,**/*.jpg,**/*.jpeg,**/*.pdf,**/*.docx,**/*.tif,**/*.tiff,.kilo/**,.opencode/**}"
+    }
+  },
+  "rewrites": [
+    { "source": "/api/ocr/health", "destination": "/api/ocr" }
+  ]
+}

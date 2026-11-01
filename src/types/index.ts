@@ -34,6 +34,8 @@ export type ClassificationSource =
 
 export type ConfidenceLevel = 'high' | 'medium' | 'low';
 
+export type OcrEngine = 'tesseract' | 'rapidocr' | 'docx' | 'pdf-text';
+
 export interface QuarterClassification {
   quarter: QuarterId;
   month: MonthName;
@@ -82,6 +84,7 @@ export interface ScannedFile {
   handle?: FileSystemFileHandle | File;
   contentUrl?: string; // Blob URL if loaded
   textContent?: string; // Preview text content if extracted
+  ocrEngine?: OcrEngine; // Which extractor produced textContent
   isDuplicate?: boolean;
   duplicateGroupHash?: string;
 }

@@ -362,6 +362,33 @@ npm run lint       # tsc --noEmit
 
 Other scripts: `npm run preview` (Vite preview), `npm run clean`.
 
+### Local OCR fallback testing
+
+Browser OCR (tesseract.js) always runs first. When its result is weak (under 25 chars, mostly non-alphanumeric, or confidence under 60), or a PDF has no real text layer, the image or the first 2 rendered PDF pages are sent to `POST /api/ocr` (`api/ocr.py`, RapidOCR on ONNX Runtime). **Files leave the device only when this fallback runs.** To turn it off, set `VITE_SERVER_OCR_ENABLED=false`.
+
+Requires Python 3.12 or 3.13.
+
+```bash
+# 1. Python OCR service (terminal 1)
+python -m venv .venv
+# Windows: .venv\Scripts\activate    macOS/Linux: source .venv/bin/activate
+pip install -r requirements-dev.txt          # runtime deps + uvicorn, pytest, httpx
+uvicorn api.ocr:app --reload --port 8000
+
+# 2. App (terminal 2). In dev, server.ts proxies /api/ocr* to localhost:8000
+npm run dev                                  # http://localhost:5454
+
+# Checks
+curl http://localhost:5454/api/ocr/health    # {"ok":true}
+python -m pytest tests -q
+```
+
+`OCR_DEV_TARGET` overrides the proxy target (default `http://localhost:8000`). If the Python service isn't running, the proxy returns 502 and the app keeps the browser OCR result.
+
+**With `vercel dev`:** run `vercel link` once, then `vercel dev` with the venv activated. Vercel serves `api/ocr.py` itself, so you don't need uvicorn. The Express dev proxy is not involved there.
+
+To confirm which engine ran: open DevTools → Console and filter `[ocr]`. A weak result logs `weak tesseract result…`, and a fallback logs `server fallback (rapidocr)…`. Network tab: a `POST /api/ocr` request appears only when the fallback ran. The document viewer's **OCR Status** field shows the engine (`tesseract`, `rapidocr`, `pdf-text`, `docx`).
+
 ---
 
 ## Extending the Codebase

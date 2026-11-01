@@ -6,3 +6,8 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# Python OCR fallback
+.venv/
+__pycache__/
+.pytest_cache/

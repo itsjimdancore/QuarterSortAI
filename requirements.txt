@@ -1,0 +1,10 @@
+# Runtime dependencies for the Python OCR fallback (api/ocr.py).
+# CPU-only: RapidOCR on ONNX Runtime. rapidocr itself depends on
+# opencv-python-headless (no libGL needed), so no override is required.
+fastapi==0.120.0
+python-multipart==0.0.20
+rapidocr==3.10.0
+onnxruntime==1.23.2
+opencv-python-headless==4.12.0.88
+numpy==2.2.6
+pillow==11.3.0

@@ -1,0 +1,8 @@
+# Never uploaded to Vercel. Note: src/ and node_modules/ are NOT listed here on
+# purpose: src/ is needed for the Vite build. They are kept out of the Python
+# function bundle via "excludeFiles" in vercel.json instead.
+.venv/
+**/__pycache__/
+.pytest_cache/
+tests/
+requirements-dev.txt
